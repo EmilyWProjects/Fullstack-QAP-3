@@ -105,7 +105,25 @@ app.get("/", (request, response) => {
 
 // GET /landing - Shows a welcome page for users, shows the names of all users if an admin
 app.get("/landing", (request, response) => {
-    
+    if (!request.session.user) {
+        return response.redirect("/login");
+    }
+    //Render based on role
+    const { user } = request.session;  // Directly pass the entire 'user' object
+
+    if (user.role === "admin") {
+        response.render("landing", { user, USERS });
+    } else {
+        response.render("landing", { user });  // For regular users, just pass the user object
+    }
+});
+
+
+//Logout and destroy session
+app.post("/logout", (request, response) => {
+    request.session.destroy(() => {
+        response.redirect("/");
+    })
 });
 
 // Start server
