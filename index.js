@@ -1,7 +1,8 @@
+//Requirements and setup
 const express = require("express");
 const path = require("path");
 const session = require("express-session");
-const bcrypt = require('bcrypt');
+const bcrypt = require("bcrypt");
 
 const app = express();
 const PORT = 3000;
@@ -20,6 +21,8 @@ app.use(
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
+
+//Registered users array
 const USERS = [
     {
         id: 1,
@@ -35,9 +38,20 @@ const USERS = [
         username: "RegularUser",
         email: "user@example.com",
         password: bcrypt.hashSync("user123", SALT_ROUNDS),
-        role: "user", // Regular user
+        role: "regular", // Regular user
     },
 ];
+
+
+// GET / - Render index page or redirect to landing if logged in
+app.get("/", (request, response) => {
+    //Load pages
+    if (request.session.user) {
+        return response.redirect("/landing");
+    }
+    response.render("index");
+});
+
 
 // GET /login - Render login form
 app.get("/login", (request, response) => {
@@ -62,6 +76,31 @@ app.post("/login", (request, response) => {
     request.session.user = user;
     response.redirect("/landing");
 });
+
+
+// GET /landing - Shows a welcome page for users, shows the names of all users if an admin
+app.get("/landing", (request, response) => {
+    if (!request.session.user) {
+        return response.redirect("/login");
+    }
+    //Render based on role
+    const { user } = request.session;  // Directly pass the entire 'user' object
+
+    if (user.role === "admin") {
+        response.render("landing", { user, USERS });
+    } else {
+        response.render("landing", { user });  // For regular users, just pass the user object
+    }
+});
+
+
+//Logout and destroy session
+app.post("/logout", (request, response) => {
+    request.session.destroy(() => {
+        response.redirect("/");
+    })
+});
+
 
 // GET /signup - Render signup form
 app.get("/signup", (request, response) => {
@@ -94,39 +133,8 @@ app.post("/signup", (request, response) => {
     return response.redirect('/login');
 });
 
-// GET / - Render index page or redirect to landing if logged in
-app.get("/", (request, response) => {
-    //Load pages
-    if (request.session.user) {
-        return response.redirect("/landing");
-    }
-    response.render("index");
-});
-
-// GET /landing - Shows a welcome page for users, shows the names of all users if an admin
-app.get("/landing", (request, response) => {
-    if (!request.session.user) {
-        return response.redirect("/login");
-    }
-    //Render based on role
-    const { user } = request.session;  // Directly pass the entire 'user' object
-
-    if (user.role === "admin") {
-        response.render("landing", { user, USERS });
-    } else {
-        response.render("landing", { user });  // For regular users, just pass the user object
-    }
-});
-
-
-//Logout and destroy session
-app.post("/logout", (request, response) => {
-    request.session.destroy(() => {
-        response.redirect("/");
-    })
-});
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+    console.log('Server running at http://localhost:3000');
 });
